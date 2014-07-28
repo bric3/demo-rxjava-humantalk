@@ -9,22 +9,17 @@
 
 
     <properties>
-        <maven.compiler.source>1.7</maven.compiler.source>
-        <maven.compiler.target>1.7</maven.compiler.target>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
         <encoding>UTF-8</encoding>
 
         <mockito.version>1.9.5</mockito.version>
-        <rxjava.version>0.19.2</rxjava.version>
-        <guava.version>16.0</guava.version>
+        <rxjava.version>0.19.6</rxjava.version>
         <rx-netty.version>0.3.6</rx-netty.version>
+        <assertj-core.version>1.6.0</assertj-core.version>
     </properties>
 
     <dependencies>
-        <dependency>
-            <groupId>com.google.guava</groupId>
-            <artifactId>guava</artifactId>
-            <version>${guava.version}</version>
-        </dependency>
         <dependency>
             <groupId>com.netflix.rxjava</groupId>
             <artifactId>rxjava-core</artifactId>
@@ -70,11 +65,6 @@
             <artifactId>rxjava-apache-http</artifactId>
             <version>${rxjava.version}</version>
         </dependency>
-        <dependency>
-            <groupId>com.google.code.gson</groupId>
-            <artifactId>gson</artifactId>
-            <version>2.2.4</version>
-        </dependency>
 
         <!-- Examples -->
         <dependency>
@@ -92,7 +82,7 @@
         <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
-            <version>1.5.0</version>
+            <version>${assertj-core.version}</version>
         </dependency>
         <dependency>
             <groupId>org.mockito</groupId>
