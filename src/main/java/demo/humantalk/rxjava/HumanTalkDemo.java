@@ -41,12 +41,7 @@ public class HumanTalkDemo {
             }
         });
 
-        ObservableHttp.createRequest(HttpAsyncMethods.createGet("http://www.lemonde.fr/"), client)
-                .toObservable()
-                .flatMap(response -> response.getContent().map(String::new))
-                .collect(new StringBuffer(), (accumulator, chunks) -> accumulator.append(chunks))
-                .map(StringBuffer::toString)
-                .doOnTerminate(closeHttpClient(client))
+        new PageObservable(client).observe("http://www.lemonde.fr/")
                 .map(Jsoup::parse)
                 .flatMap(document -> {
                     Elements en_continu_items = document.select("div#body-publicite > div.global div.pages > ul.liste_horaire > li");
@@ -57,6 +52,7 @@ public class HumanTalkDemo {
                         element.select("a").text(),
                         "http://www.lemonde.fr/" + element.select("a").attr("href")
                 ))
+                .doOnTerminate(closeHttpClient(client))
                 .subscribe(System.out::println);
 
 
@@ -73,4 +69,19 @@ public class HumanTalkDemo {
     }
 
 
+    private static class PageObservable {
+        private CloseableHttpAsyncClient client;
+
+        public PageObservable(CloseableHttpAsyncClient client) {
+            this.client = client;
+        }
+
+        public Observable<String> observe(String requestURI) {
+            return ObservableHttp.createRequest(HttpAsyncMethods.createGet(requestURI), client)
+                    .toObservable()
+                    .flatMap(response -> response.getContent().map(String::new))
+                    .collect(new StringBuffer(), (accumulator, chunks) -> accumulator.append(chunks))
+                    .map(StringBuffer::toString);
+        }
+    }
 }
