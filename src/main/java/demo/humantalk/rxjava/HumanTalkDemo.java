@@ -13,6 +13,7 @@ import rx.plugins.RxJavaPlugins;
 import rx.subjects.PublishSubject;
 
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class HumanTalkDemo {
@@ -34,14 +35,15 @@ public class HumanTalkDemo {
         // lien et titre
         //    ... li:nth-child(1) > a.texte
         RxJavaPlugins.getInstance().registerErrorHandler(new RxJavaErrorHandler() {
-
             @Override
             public void handleError(Throwable e) {
                 e.printStackTrace();
             }
         });
 
-        new PageObservable(client).observe("http://www.lemonde.fr/")
+
+        Observable.timer(0, 4, TimeUnit.SECONDS)
+                .map(tick -> new PageObservable(client).observe("http://www.lemonde.fr/").toBlocking().single())
                 .map(Jsoup::parse)
                 .flatMap(document -> {
                     Elements en_continu_items = document.select("div#body-publicite > div.global div.pages > ul.liste_horaire > li");
