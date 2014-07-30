@@ -6,6 +6,7 @@ import org.apache.http.nio.client.methods.HttpAsyncMethods;
 import org.jsoup.Jsoup;
 import org.jsoup.select.Elements;
 import rx.Observable;
+import rx.Subscriber;
 import rx.apache.http.ObservableHttp;
 import rx.functions.Action0;
 import rx.plugins.RxJavaErrorHandler;
@@ -25,15 +26,6 @@ public class HumanTalkDemo {
         CloseableHttpAsyncClient client = HttpAsyncClients.createDefault();
         client.start();
 
-        // Titre en continu
-        // #body-publicite > div.global.une_edito > div > div.grid_6.omega.col_droite.resizable > div.bloc_base.bloc_droit.en_continu
-
-        // En continu:
-        // #body-publicite > div.global.une_edito > div > div.grid_6.omega.col_droite.resizable > div.bloc_base.bloc_droit.en_continu > div.pages > ul.liste_horaire.no_border.current > li:nth-child(1)
-        // heure
-        //    ... li:nth-child(1) > span.heure
-        // lien et titre
-        //    ... li:nth-child(1) > a.texte
         RxJavaPlugins.getInstance().registerErrorHandler(new RxJavaErrorHandler() {
             @Override
             public void handleError(Throwable e) {
@@ -44,21 +36,54 @@ public class HumanTalkDemo {
 
         Observable.timer(0, 4, TimeUnit.SECONDS)
                 .map(tick -> new PageObservable(client).observe("http://www.lemonde.fr/").toBlocking().single())
-                .map(Jsoup::parse)
-                .flatMap(document -> {
-                    Elements en_continu_items = document.select("div#body-publicite > div.global div.pages > ul.liste_horaire > li");
-                    return Observable.from(en_continu_items);
-                })
-                .map(element -> NewsStories.from(
-                        element.select("span.heure").text(),
-                        element.select("a").text(),
-                        "http://www.lemonde.fr/" + element.select("a").attr("href")
-                ))
+                .lift(toNewsStories())
                 .doOnTerminate(closeHttpClient(client))
                 .subscribe(System.out::println);
 
 
     }
+
+    private static Observable.Operator<NewsStories, String> toNewsStories() {
+        return new Observable.Operator<NewsStories, String>() {
+            @Override
+            public Subscriber<? super String> call(Subscriber<? super NewsStories> subscriber) {
+                return new Subscriber<String>() {
+                    @Override
+                    public void onCompleted() {
+                        if (!subscriber.isUnsubscribed()) {
+                            subscriber.onCompleted();
+                        }
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        if (!subscriber.isUnsubscribed()) {
+                            subscriber.onError(e);
+                        }
+                    }
+
+                    @Override
+                    public void onNext(String s) {
+                        if (subscriber.isUnsubscribed()) {
+                            return;
+                        }
+                        Observable.from(s)
+                                .map(Jsoup::parse)
+                                .flatMap(document -> {
+                                    Elements en_continu_items = document.select("div#body-publicite > div.global div.pages > ul.liste_horaire > li");
+                                    return Observable.from(en_continu_items);
+                                })
+                                .map(element -> NewsStories.from(
+                                        element.select("span.heure").text(),
+                                        element.select("a").text(),
+                                        "http://www.lemonde.fr/" + element.select("a").attr("href")
+                                )).subscribe(subscriber::onNext, subscriber::onError);
+                    }
+                };
+            }
+        };
+    }
+
 
     private static Action0 closeHttpClient(CloseableHttpAsyncClient client) {
         return () -> {
