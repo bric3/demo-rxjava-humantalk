@@ -6,7 +6,6 @@ import org.apache.http.nio.client.methods.HttpAsyncMethods;
 import org.jsoup.Jsoup;
 import org.jsoup.select.Elements;
 import rx.Observable;
-import rx.Subscriber;
 import rx.apache.http.ObservableHttp;
 import rx.functions.Action0;
 import rx.plugins.RxJavaErrorHandler;
@@ -37,51 +36,24 @@ public class HumanTalkDemo {
         Observable.timer(0, 4, TimeUnit.SECONDS)
                 .map(tick -> new PageObservable(client).observe("http://www.lemonde.fr/").toBlocking().single())
                 .lift(toNewsStories())
-                .doOnTerminate(closeHttpClient(client))
+//                .doOnTerminate(closeHttpClient(client))
                 .subscribe(System.out::println);
 
 
     }
 
-    private static Observable.Operator<NewsStories, String> toNewsStories() {
-        return new Observable.Operator<NewsStories, String>() {
-            @Override
-            public Subscriber<? super String> call(Subscriber<? super NewsStories> subscriber) {
-                return new Subscriber<String>() {
-                    @Override
-                    public void onCompleted() {
-                        if (!subscriber.isUnsubscribed()) {
-                            subscriber.onCompleted();
-                        }
-                    }
-
-                    @Override
-                    public void onError(Throwable e) {
-                        if (!subscriber.isUnsubscribed()) {
-                            subscriber.onError(e);
-                        }
-                    }
-
-                    @Override
-                    public void onNext(String s) {
-                        if (subscriber.isUnsubscribed()) {
-                            return;
-                        }
-                        Observable.from(s)
-                                .map(Jsoup::parse)
-                                .flatMap(document -> {
-                                    Elements en_continu_items = document.select("div#body-publicite > div.global div.pages > ul.liste_horaire > li");
-                                    return Observable.from(en_continu_items);
-                                })
-                                .map(element -> NewsStories.from(
-                                        element.select("span.heure").text(),
-                                        element.select("a").text(),
-                                        "http://www.lemonde.fr/" + element.select("a").attr("href")
-                                )).subscribe(subscriber::onNext, subscriber::onError);
-                    }
-                };
-            }
-        };
+    private static TransformingObservableOperator<NewsStories, String> toNewsStories() {
+        return new TransformingObservableOperator<NewsStories, String>(webPage -> Observable.from(webPage)
+                .map(Jsoup::parse)
+                .flatMap(document -> {
+                    Elements en_continu_items = document.select("div#body-publicite > div.global div.pages > ul.liste_horaire > li");
+                    return Observable.from(en_continu_items);
+                })
+                .map(element -> NewsStories.from(
+                        element.select("span.heure").text(),
+                        element.select("a").text(),
+                        "http://www.lemonde.fr/" + element.select("a").attr("href")
+                )));
     }
 
 
@@ -111,4 +83,5 @@ public class HumanTalkDemo {
                     .map(StringBuffer::toString);
         }
     }
+
 }
