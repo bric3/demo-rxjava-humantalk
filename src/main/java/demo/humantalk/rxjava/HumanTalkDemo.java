@@ -34,7 +34,7 @@ public class HumanTalkDemo {
 
 
         Observable.timer(0, 4, TimeUnit.SECONDS)
-                .map(tick -> new PageObservable(client).observe("http://www.lemonde.fr/").toBlocking().single())
+                .flatMap(tick -> new PageObservable(client).observe("http://www.lemonde.fr/"))
                 .lift(toNewsStories())
 //                .doOnTerminate(closeHttpClient(client))
                 .subscribe(System.out::println);
