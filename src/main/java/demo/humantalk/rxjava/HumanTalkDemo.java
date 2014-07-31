@@ -10,18 +10,13 @@ import rx.apache.http.ObservableHttp;
 import rx.functions.Action0;
 import rx.plugins.RxJavaErrorHandler;
 import rx.plugins.RxJavaPlugins;
-import rx.subjects.PublishSubject;
 
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class HumanTalkDemo {
 
     public static void main(String[] args) {
-        PublishSubject<String> endNotifier = PublishSubject.create();
-        AtomicInteger counter = new AtomicInteger();
-
         CloseableHttpAsyncClient client = HttpAsyncClients.createDefault();
         client.start();
 
