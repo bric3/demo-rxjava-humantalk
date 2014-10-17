@@ -1,11 +1,13 @@
 package demo.humantalk.rxjava;
 
 import rx.Observable;
+import rx.Scheduler;
 import rx.Subscriber;
 import rx.plugins.RxJavaErrorHandler;
 import rx.plugins.RxJavaPlugins;
 import rx.schedulers.Schedulers;
 
+import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -23,58 +25,142 @@ public class Average {
     }
 
     public static void main(String[] args) throws InterruptedException {
-        Observable<Integer> data = dataGenerator();
-        Observable<Double> avg = averageOf(data);
+        Observable<Double> data = evilDataGenerator();
+        Observable<Double> newThread = averageOf(data, Schedulers.newThread());
+        Observable<Double> computation = averageOf(data, Schedulers.computation());
+        Observable<Double> io = averageOf(data, Schedulers.io());
 
-        System.out.println("wait...");
+        Observable<Double> all = newThread.concatWith(computation).concatWith(io);
+        Observable<String> allNames = Observable.from(Arrays.asList("newThread", "computation", "io"));
 
-        // Observable.timer(3, TimeUnit.SECONDS, Schedulers.immediate()).subscribe();
+        allNames.zipWith(all, Result::new).toBlocking().forEach(Average::displayResult);
 
-        avg.subscribe((result) -> System.out.println(String.format("Avg \t -> \t %f", result)));
-
-        Observable.timer(5, TimeUnit.SECONDS, Schedulers.immediate()).subscribe();
     }
 
-    private static Observable<Double> averageOf(Observable<Integer> data) {
+    private static void displayResult(Result result) {
+        System.out.println("----------------------------------------------------");
+        System.out.println(String.format("[%s]\t\t\t Avg \t -> \t%f", result.getName(), result.getResult()));
+        System.out.println("----------------------------------------------------");
+    }
 
-        Observable<Integer> bridge = data
-                .doOnNext((e) -> System.out.println(String.format("value \t -> \t%d", e)))
+    private static Observable<Double> averageOf(Observable<Double> data, Scheduler scheduler) {
+
+        Observable<Double> bridge = data
                 .share()
                         // the secret is...here !
-                .subscribeOn(Schedulers.computation());
+                        // without it, stream is synchronized.
+                        // so the zip first subscribe on the first observer
+                        // as, it's synchronized, it consume it then subscribe
+                        // on the second. As it's the same hot observable
+                        // the stream is empty, and you're owned !
+                        // -------------------------------------------
+                        // The problem is that it will emit events as soon as
+                        // the first observer is subscribe (here sum)
+                        // so the second observer can miss events that are emitted
+                        // between the first observer subscription, and the second observer subscription
+                        // -------------------------------------------
+                        // use Schedulers.computation() or Schedulers.newThread() to see the problem
+                .subscribeOn(scheduler);
 
-        Observable<Double> count = bridge.count()
-                .doOnNext((e) -> System.out.println("thread count \t" + Thread.currentThread().getName()))
-                .doOnNext((e) -> System.out.println("count " + e))
-                .map(Integer::doubleValue);
 
-        Observable<Double> sum = bridge.reduce(0, (seed, e) -> seed + e)
-                .doOnNext((e) -> System.out.println("thread sum \t" + Thread.currentThread().getName()))
-                .doOnNext((e) -> System.out.println("reduce " + e))
-                .map(Integer::doubleValue);
+        Observable<Double> count = bridge.count().map(Integer::doubleValue);
+
+        Observable<Double> sum = bridge.reduce(0.0, (seed, e) -> seed + e);
 
         return Observable.zip(sum, count, (s, c) -> s / c);
     }
 
-    private static Observable<Integer> evilDataGenerator() {
-        Observable<Long> interval = Observable.interval(10, TimeUnit.MILLISECONDS);
-        return interval.window(1, TimeUnit.SECONDS)
-                .take(1)
-                .flatMap((obs) -> obs)
-                .doOnEach(System.err::println)
-                .map(Long::intValue);
+    private static Observable<Double> evilDataGenerator() {
+        return Observable.interval(1, TimeUnit.MICROSECONDS)
+                .map(Long::doubleValue)
+                        // emit items during 3 seconds
+                .lift(new OperatorThrottle<>(3, TimeUnit.SECONDS));
     }
 
-    private static Observable<Integer> dataGenerator() {
-        return Observable.create(new Observable.OnSubscribe<Integer>() {
+    private static Observable<Double> dataGenerator() {
+        return Observable.create(new Observable.OnSubscribe<Double>() {
             @Override
-            public void call(Subscriber<? super Integer> subscriber) {
+            public void call(Subscriber<? super Double> subscriber) {
                 System.out.println("SUBSCRIBE");
-                subscriber.onNext(10);
-                subscriber.onNext(15);
-                subscriber.onNext(20);
+                subscriber.onNext(10.0);
+                subscriber.onNext(15.0);
+                subscriber.onNext(20.0);
                 subscriber.onCompleted();
             }
         });
+    }
+
+
+    private static class OperatorThrottle<T> implements Observable.Operator<T, T> {
+        private final long time;
+        private final TimeUnit unit;
+
+        private final Scheduler scheduler;
+
+        public OperatorThrottle(final long time, final TimeUnit unit) {
+            this(time, unit, Schedulers.computation());
+        }
+
+
+        public OperatorThrottle(final long time, final TimeUnit unit, Scheduler scheduler) {
+            this.time = time;
+            this.unit = unit;
+            this.scheduler = scheduler;
+        }
+
+        @Override
+        public Subscriber<? super T> call(final Subscriber<? super T> subscriber) {
+            return new Subscriber<T>(subscriber) {
+
+                private volatile boolean alreadyCompleted = false;
+
+                @Override
+                public void onStart() {
+                    scheduler.createWorker().schedule(() -> {
+                        if (!alreadyCompleted) {
+                            alreadyCompleted = true;
+                            subscriber.onCompleted();
+                        }
+                    }, time, unit);
+                }
+
+                @Override
+                public void onCompleted() {
+                    if (!alreadyCompleted) {
+                        alreadyCompleted = true;
+                        subscriber.onCompleted();
+                    }
+                }
+
+                @Override
+                public void onError(final Throwable e) {
+                    subscriber.onError(e);
+                }
+
+                @Override
+                public void onNext(final T t) {
+                    subscriber.onNext(t);
+                }
+            };
+        }
+    }
+
+    private static class Result {
+        private final String name;
+        private final Double result;
+
+
+        private Result(final String name, final Double result) {
+            this.name = name;
+            this.result = result;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public Double getResult() {
+            return result;
+        }
     }
 }
