@@ -1,8 +1,10 @@
 package demo.humantalk.rxjava;
 
+import demo.humantalk.rxjava.operators.OnSubscribeRefCountN;
 import rx.Observable;
 import rx.Scheduler;
 import rx.Subscriber;
+import rx.observables.ConnectableObservable;
 import rx.plugins.RxJavaErrorHandler;
 import rx.plugins.RxJavaPlugins;
 import rx.schedulers.Schedulers;
@@ -25,13 +27,25 @@ public class Average {
     }
 
     public static void main(String[] args) throws InterruptedException {
-        Observable<Double> data = evilDataGenerator();
+        Observable<Double> data = evilDataGenerator2();
         Observable<Double> newThread = averageOf(data, Schedulers.newThread());
         Observable<Double> computation = averageOf(data, Schedulers.computation());
         Observable<Double> io = averageOf(data, Schedulers.io());
 
-        Observable<Double> all = newThread.concatWith(computation).concatWith(io);
-        Observable<String> allNames = Observable.from(Arrays.asList("newThread", "computation", "io"));
+        Observable<Double> newThread2 = averageOf2(data, Schedulers.newThread());
+        Observable<Double> computation2 = averageOf2(data, Schedulers.computation());
+        Observable<Double> io2 = averageOf2(data, Schedulers.io());
+
+        Observable<Double> all = newThread.concatWith(computation)
+                .concatWith(io)
+                .concatWith(newThread2)
+                .concatWith(computation2)
+                .concatWith(io2);
+
+        Observable<String> allNames = Observable.from(
+                Arrays.asList("newThread", "computation", "io"));
+
+        allNames = allNames.concatWith(allNames);
 
         allNames.zipWith(all, Result::new).toBlocking().forEach(Average::displayResult);
 
@@ -70,11 +84,33 @@ public class Average {
         return Observable.zip(sum, count, (s, c) -> s / c);
     }
 
+
+    private static Observable<Double> averageOf2(Observable<Double> data, Scheduler scheduler) {
+
+        ConnectableObservable<? extends Double> hot = data
+                .publish();
+
+        Observable<Double> bridge = Observable.create(new OnSubscribeRefCountN<>(hot, 2))
+                // the secret is...here !
+                .subscribeOn(scheduler);
+
+        Observable<Double> count = bridge.count()
+                .map(Integer::doubleValue);
+
+        Observable<Double> sum = bridge.reduce(0.0, (seed, e) -> seed + e);
+
+        return Observable.zip(sum, count, (s, c) -> s / c);
+    }
+
     private static Observable<Double> evilDataGenerator() {
         return Observable.interval(1, TimeUnit.MICROSECONDS)
                 .map(Long::doubleValue)
                         // emit items during 3 seconds
                 .lift(new OperatorThrottle<>(3, TimeUnit.SECONDS));
+    }
+
+    private static Observable<Double> evilDataGenerator2() {
+        return Observable.range(1, 10000).map(Integer::doubleValue);
     }
 
     private static Observable<Double> dataGenerator() {
