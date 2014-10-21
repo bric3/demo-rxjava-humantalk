@@ -72,6 +72,12 @@
             <version>${jsoup.version}</version>
         </dependency>
 
+        <dependency>
+            <groupId>com.squareup.retrofit</groupId>
+            <artifactId>retrofit</artifactId>
+            <version>1.7.0</version>
+        </dependency>
+
         <!-- Examples -->
         <dependency>
             <groupId>com.netflix.rxjava</groupId>
