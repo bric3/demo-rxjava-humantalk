@@ -11,6 +11,7 @@ import retrofit.http.Path;
 import rx.Observable;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * Created by david.wursteisen on 21/10/2014.
@@ -32,17 +33,24 @@ public class FromFutureToCallbackToRx {
         }
 
 
-//        System.out.println("====== ASYNC FUTURE ======");
-//        CompletableFuture<List<Contributor>> future = CompletableFuture.supplyAsync(
-//                () -> service.contributors("ReactiveX", "RxJava")).thenApplyAsync(contributors -> null)
-//
-//        for (int i = 0; i < 5; i++) {
-//            List<Repo> repos = service.repos(contributors.get(i).author.login);
-//            for (Repo repo : repos) {
-//                System.out.println("[SYNC] => " + repo.full_name);
-//
-//            }
-//        }
+        System.out.println("====== ASYNC FUTURE ======");
+        CompletableFuture.supplyAsync(
+                () -> service.contributors("ReactiveX", "RxJava")).thenAccept(c -> {
+
+
+            for (int i = 0; i < 5; i++) {
+                final int index = i;
+
+                CompletableFuture<List<Repo>> f = CompletableFuture.supplyAsync(() -> service.repos(c.get(index).author.login));
+                f.thenAccept((repos) -> {
+                    for (Repo repo : repos) {
+                        System.out.println("[ASYNC FUTURE] => " + repo.full_name);
+                    }
+                });
+            }
+
+        });
+
 
         Thread.sleep(1000);
         System.out.println("====== ASYNC ======");
