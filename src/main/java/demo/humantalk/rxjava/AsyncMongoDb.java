@@ -24,7 +24,7 @@ import java.util.List;
  */
 public class AsyncMongoDb {
 
-    public static void main(String[] args) throws UnknownHostException {
+    public static void main(String[] args) throws UnknownHostException, InterruptedException {
 
         GitHubServiceRx serviceRx = buildService(GitHubServiceRx.class);
 
@@ -33,13 +33,21 @@ public class AsyncMongoDb {
 
         collection.find(new Document("username", new Document("$exists", true)))
                 .forEach()
+                .observeOn(Schedulers.immediate())
+                .subscribe(System.out::println);
+
+        collection.find(new Document("username", new Document("$exists", true)))
+                .forEach()
                 .observeOn(Schedulers.computation())
                 .doOnNext(System.out::println)
                 .flatMap((d) -> serviceRx.repos(d.getString("username")))
                 .flatMap(Observable::from)
-                .doOnNext((r) -> db.getCollection("repo").insert(new Document("name", r.full_name)))
-                .observeOn(Schedulers.immediate())
-                .subscribe(System.out::println);
+                .doOnNext((r) -> db.getCollection("repo").insert(new Document("name", r.full_name)).subscribe())
+                .toBlocking()
+                .forEach(System.out::println);
+
+
+
     }
 
     private static <T> T buildService(final Class<T> service) {

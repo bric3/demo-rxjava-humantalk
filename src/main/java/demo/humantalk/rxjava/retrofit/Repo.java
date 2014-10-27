@@ -6,4 +6,12 @@ package demo.humantalk.rxjava.retrofit;
 public class Repo {
     public String name;
     public String full_name;
+
+    @Override
+    public String toString() {
+        return "Repo{" +
+                "name='" + name + '\'' +
+                ", full_name='" + full_name + '\'' +
+                '}';
+    }
 }
