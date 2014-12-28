@@ -41,7 +41,7 @@ public class HumanTalkDemo {
     }
 
     private static Func1<String, Observable<? extends NewsStories>> toNewsStories() {
-        return (String webPage) -> Observable.from(webPage)
+        return (String webPage) -> Observable.just(webPage)
                 .map(Jsoup::parse)
                 .flatMap(document -> {
                     Elements en_continu_items = document.select("div#body-publicite > div.global div.pages > ul.liste_horaire > li");
@@ -77,9 +77,9 @@ public class HumanTalkDemo {
             return ObservableHttp.createRequest(HttpAsyncMethods.createGet(requestURI), client)
                     .toObservable()
                     .flatMap(response -> response.getContent().map(String::new))
-                    .collect(new StringBuffer(), (accumulator, chunks) -> accumulator.append(chunks))
-                    .map(StringBuffer::toString);
+                    .collect(StringBuilder::new, StringBuilder::append)
+                    .map(StringBuilder::toString)
+                    ;
         }
     }
-
 }
