@@ -14,7 +14,7 @@ import java.util.concurrent.TimeUnit;
 public class ConfDelay {
 
     public static void main(String[] args) {
-        Observable.range(1, 1000).lift(new ConfigurableDelay(ConfDelay::delayPerItem, Schedulers.immediate()))
+        Observable.range(1, 1000).lift(new ConfigurableDelay<>(ConfDelay::delayPerItem, Schedulers.immediate()))
                 .map((i) -> "|")
                 .subscribe(System.out::print);
     }
