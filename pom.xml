@@ -22,59 +22,66 @@
         <maven.compiler.target>1.8</maven.compiler.target>
         <encoding>UTF-8</encoding>
 
-        <mockito.version>1.9.5</mockito.version>
-        <rxjava.version>0.20.5</rxjava.version>
-        <rx-netty.version>0.3.6</rx-netty.version>
-        <assertj-core.version>1.6.0</assertj-core.version>
+        <mockito.version>1.10.17</mockito.version>
+        <rxjava.version>1.0.3</rxjava.version>
+        <rx-netty.version>0.4.4</rx-netty.version>
+        <assertj-core.version>1.7.0</assertj-core.version>
         <jsoup.version>1.7.3</jsoup.version>
         <lombok.version>1.14.4</lombok.version>
+        <junit.version>4.12</junit.version>
+        <rxjava-reactive-streams.version>0.3.0</rxjava-reactive-streams.version>
     </properties>
 
     <dependencies>
         <dependency>
-            <groupId>com.netflix.rxjava</groupId>
-            <artifactId>rxjava-core</artifactId>
+            <groupId>io.reactivex</groupId>
+            <artifactId>rxjava</artifactId>
             <version>${rxjava.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.netflix.rxnetty</groupId>
-            <artifactId>rx-netty</artifactId>
+            <groupId>io.reactivex</groupId>
+            <artifactId>rxnetty</artifactId>
             <version>${rx-netty.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.netflix.rxnetty</groupId>
-            <artifactId>rx-netty-remote-observable</artifactId>
+            <groupId>io.reactivex</groupId>
+            <artifactId>rxnetty-remote-observable</artifactId>
             <version>${rx-netty.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.netflix.rxjava</groupId>
+            <groupId>io.reactivex</groupId>
             <artifactId>rxjava-computation-expressions</artifactId>
-            <version>${rxjava.version}</version>
+            <version>0.21.0</version>
         </dependency>
         <dependency>
-            <groupId>com.netflix.rxjava</groupId>
+            <groupId>io.reactivex</groupId>
             <artifactId>rxjava-async-util</artifactId>
-            <version>${rxjava.version}</version>
+            <version>0.21.0</version>
         </dependency>
         <dependency>
-            <groupId>com.netflix.rxjava</groupId>
+            <groupId>io.reactivex</groupId>
             <artifactId>rxjava-string</artifactId>
-            <version>${rxjava.version}</version>
+            <version>0.22.0</version>
         </dependency>
         <dependency>
-            <groupId>com.netflix.rxjava</groupId>
+            <groupId>io.reactivex</groupId>
             <artifactId>rxjava-math</artifactId>
-            <version>${rxjava.version}</version>
+            <version>1.0.0</version>
         </dependency>
         <dependency>
             <groupId>com.netflix.rxjava</groupId>
             <artifactId>rxjava-quasar</artifactId>
-            <version>${rxjava.version}</version>
+            <version>0.20.7</version>
         </dependency>
         <dependency>
             <groupId>com.netflix.rxjava</groupId>
             <artifactId>rxjava-apache-http</artifactId>
-            <version>${rxjava.version}</version>
+            <version>0.20.7</version>
+        </dependency>
+        <dependency>
+            <groupId>io.reactivex</groupId>
+            <artifactId>rxjava-reactive-streams</artifactId>
+            <version>${rxjava-reactive-streams.version}</version>
         </dependency>
         <dependency>
             <groupId>org.jsoup</groupId>
@@ -94,18 +101,6 @@
             <version>${lombok.version}</version>
         </dependency>
 
-        <!-- Examples -->
-        <dependency>
-            <groupId>com.netflix.rxjava</groupId>
-            <artifactId>rxjava-examples</artifactId>
-            <version>0.5.0</version>
-        </dependency>
-        <dependency>
-            <groupId>com.netflix.rxnetty</groupId>
-            <artifactId>rx-netty-examples</artifactId>
-            <version>${rx-netty.version}</version>
-        </dependency>
-
         <!-- Test -->
         <dependency>
             <groupId>org.assertj</groupId>
@@ -122,7 +117,7 @@
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-            <version>4.11</version>
+            <version>${junit.version}</version>
             <scope>test</scope>
         </dependency>
 
@@ -135,7 +130,7 @@
 
     </dependencies>
     <build>
-        <finalName>contains-a-lot</finalName>
+        <finalName>demo-rxjava</finalName>
         <plugins>
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
